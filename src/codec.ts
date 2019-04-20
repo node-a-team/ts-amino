@@ -27,6 +27,7 @@ export function nameToDisfix(name:string):{disambBytes:Uint8Array, prefixBytes:U
 
 export interface TypeInfo {
   type:Type,
+  structInfo:StructInfo,
 }
 
 export interface InterfaceInfo {
@@ -39,6 +40,10 @@ export interface InterfaceOption {
 
 export interface ConcreteInfo {
 
+}
+
+export interface StructInfo {
+  fields:FieldInfo[]
 }
 
 export interface FieldInfo extends FieldOptions {
