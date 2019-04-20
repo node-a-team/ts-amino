@@ -1,0 +1,28 @@
+{
+  "name": "ts-amino",
+  "version": "0.0.1",
+  "description": "javascript/typescript version amino",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "mocha -r ts-node/register src/**/*.spec.ts",
+    "lint": "tslint -c tslint.json -p tsconfig.json",
+    "lint-fix": "tslint -c tslint.json -p tsconfig.json --fix"
+  },
+  "author": "Thunnini",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "big-integer": "^1.6.43",
+    "buffer": "^5.2.1",
+    "sha.js": "^2.4.11"
+  },
+  "devDependencies": {
+    "@types/mocha": "^5.2.6",
+    "@types/node": "^11.13.2",
+    "@types/sha.js": "^2.4.0",
+    "mocha": "^6.1.4",
+    "ts-node": "^8.1.0",
+    "tslint": "^5.15.0",
+    "tslint-config-airbnb": "^5.11.1",
+    "typescript": "^3.4.2"
+  }
+}
