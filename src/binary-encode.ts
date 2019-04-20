@@ -1,7 +1,8 @@
 import * as Encoder from './encoder'
 import bigInteger from 'big-integer'
+import { uvarint, constants } from './varint'
 import { TypeInfo, FieldOptions } from './codec'
-import { Type } from './type'
+import { Type, Typ3 } from './type'
 
 export function encodeReflectBinary(
   info:TypeInfo, value:any, fopts:FieldOptions, bare:boolean):Uint8Array {
@@ -64,4 +65,16 @@ export function encodeReflectBinary(
     default:
       throw new Error('unsupported type')
   }
+}
+
+function encodeFieldNumberAndTyp3(num:number, typ3:Typ3):Uint8Array {
+  constants.mustUint32(num)
+  if ((typ3 & 0xF8) !== 0) {
+    throw new Error(`invalid Typ3 byte ${typ3}`)
+  }
+  // TODO: if num is greater than 1<<29-1, throw error
+
+  const value64 = (num << 3) | typ3
+
+  return uvarint.encode(bigInteger(value64))
 }
