@@ -66,9 +66,7 @@ const varint = {
     let tempInt = integer
     if (integer.isNegative()) {
       // make integer to uint64 except signed bit
-      tempInt = tempInt.negate()
-      tempInt = tempInt.minus(bigInteger(1))
-      tempInt = MAX_UINT64.minus(tempInt)
+      tempInt = int64ToUint64(tempInt)
       tempInt = tempInt.minus(UINT64_BIT64)
 
       tempInt = tempInt.shiftLeft(1)
@@ -88,6 +86,16 @@ const varint = {
     }
     return int
   },
+}
+
+function int64ToUint64(int64: bigInteger.BigInteger):bigInteger.BigInteger {
+  if (int64.isNegative()) {
+    let uint64 = int64.negate()
+    uint64 = uint64.minus(bigInteger(1))
+    uint64 = MAX_UINT64.minus(uint64)
+    return uint64
+  }
+  return int64
 }
 
 function numberToInt(num:number | bigInteger.BigInteger) {
@@ -169,6 +177,7 @@ const constants = {
   MAX_UINT64,
   MAX_INT64,
   MIN_INT64,
+  int64ToUint64,
   numberToInt,
   mustInt8,
   mustUint8,

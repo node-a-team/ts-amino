@@ -31,6 +31,14 @@ export enum Typ3 {
   // Interface = 7,
 }
 
+// tslint:disable-next-line:variable-name
+export const Symbols = {
+  typeInfo: Symbol('typeInfo'),
+  typeToPropertyKey: Symbol('typeToPropertyKey'),
+  decoratorTypeInfos: Symbol('decoratorTypeInfos'),
+  fieldTypeInfoMap: Symbol('fieldTypeInfoMap'),
+}
+
 export function typ3ToString(typ3:Typ3):string {
   switch (typ3) {
     case Typ3.Varint:

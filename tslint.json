@@ -5,7 +5,9 @@
     ],
     "jsRules": {},
     "rules": {
-        "semicolon": false
+        "semicolon": false,
+        "max-line-length": false,
+        "object-shorthand-properties-first": false
     },
     "rulesDirectory": []
 }

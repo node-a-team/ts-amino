@@ -4,6 +4,7 @@
   "description": "javascript/typescript version amino",
   "main": "dist/index.js",
   "scripts": {
+    "build": "tsc",
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "lint": "tslint -c tslint.json -p tsconfig.json",
     "lint-fix": "tslint -c tslint.json -p tsconfig.json --fix"
