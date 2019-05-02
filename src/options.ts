@@ -9,12 +9,10 @@ export interface TypeInfo {
 }
 
 export interface InterfaceInfo {
-  priority:Uint8Array[]       // Disfix priority.
   interfaceOptions:InterfaceOptions
 }
 
 export interface InterfaceOptions {
-  priority:string[]         // Disamb priority.
   alwaysDisambiguate:boolean
 }
 
