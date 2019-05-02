@@ -34,12 +34,30 @@ export function marshalBinaryLengthPrefixed<T = any>(value:T):Uint8Array {
   return bz
 }
 
-export function registerConcrete(name:string, value:any, info:Pick<TypeInfo, Exclude<keyof TypeInfo, 'type' | 'arrayOf' | 'concreteInfo'>>) {
+export function registerConcrete(name:string, value:any) {
   if (typeof value !== 'object') {
     throw new Error('can register only object')
   }
 
   const disfix = nameToDisfix(name)
+
+  const concreteInfo:ConcreteInfo = {
+    registered: true,
+    name,
+    disamb: disfix.disambBytes,
+    prefix: disfix.prefixBytes,
+  }
+  if (value[Symbols.typeInfo]) {
+    value[Symbols.typeInfo].concreteInfo = concreteInfo
+  } else {
+    throw new Error('unregistered type')
+  }
+}
+
+export function registerStruct(value:any, info:Pick<TypeInfo, Exclude<keyof TypeInfo, 'type' | 'arrayOf' | 'concreteInfo'>>) {
+  if (typeof value !== 'object') {
+    throw new Error('can register only object')
+  }
 
   if (!value[Symbols.fieldTypeInfoMap]) {
     value[Symbols.fieldTypeInfoMap] = {}
@@ -56,21 +74,10 @@ export function registerConcrete(name:string, value:any, info:Pick<TypeInfo, Exc
     }
   }
 
-  const concreteInfo:ConcreteInfo = {
-    registered: true,
-    name,
-    disamb: disfix.disambBytes,
-    prefix: disfix.prefixBytes,
-  }
-  if (value[Symbols.typeInfo]) {
-    value[Symbols.typeInfo].concreteInfo = concreteInfo
-  } else {
-    const resultInfo:TypeInfo = {...{
-      type: Type.Struct,
-      concreteInfo,
-    }, ...info}
-    value[Symbols.typeInfo] = resultInfo
-  }
+  const resultInfo:TypeInfo = {...{
+    type: Type.Struct,
+  }, ...info}
+  value[Symbols.typeInfo] = resultInfo
 }
 
 export function registerType(value:any, info:Pick<TypeInfo, 'type' | 'arrayOf'>, propertyKey:string) {
@@ -83,7 +90,7 @@ export function registerType(value:any, info:Pick<TypeInfo, 'type' | 'arrayOf'>,
 }
 
 // tslint:disable-next-line:function-name
-export function Define():ClassDecorator {
+export function DefineType():ClassDecorator {
   return (constructor: Function) => {
     const properties:Property[] = constructor.prototype[Symbols.decoratorTypeInfos]
     if (!properties || properties.length !== 1) {
@@ -101,7 +108,7 @@ export function Define():ClassDecorator {
 }
 
 // tslint:disable-next-line:function-name
-export function Concrete(name:string):ClassDecorator {
+export function DefineStruct():ClassDecorator {
   return (constructor: Function) => {
     let structInfo:StructInfo | undefined
     if (constructor.prototype[Symbols.decoratorTypeInfos]) {
@@ -121,9 +128,16 @@ export function Concrete(name:string):ClassDecorator {
       }
     }
 
-    registerConcrete(name, constructor.prototype, {
+    registerStruct(constructor.prototype, {
       structInfo,
     })
+  }
+}
+
+// tslint:disable-next-line:function-name
+export function Concrete(name:string):ClassDecorator {
+  return (constructor: Function) => {
+    registerConcrete(name, constructor.prototype)
   }
 }
 
@@ -135,7 +149,7 @@ interface Property {
 }
 
 // tslint:disable-next-line:function-name
-export function Property(type:Type, index:number = -1, arrayOf?:Type, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
+export function Property(type:Type, index:number = -1, arrayOf?:Pick<TypeInfo, 'type' | 'arrayOf'>, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
   return (target: any, propertyKey: string | symbol) => {
     if (typeof propertyKey === 'symbol') {
       throw new Error('can not set property key as symbol')
@@ -221,12 +235,12 @@ function Uint64(index:number = -1, fieldOptions:Partial<FieldOptions> = {}):Prop
 }
 
 // tslint:disable-next-line:function-name
-function Array(index:number = -1, arrayOf:Type, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
+function Array(index:number = -1, arrayOf:Pick<TypeInfo, 'type' | 'arrayOf'>, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
   return Property(Type.Array, index, arrayOf, fieldOptions)
 }
 
 // tslint:disable-next-line:function-name
-function Slice(index:number = -1, arrayOf:Type, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
+function Slice(index:number = -1, arrayOf:Pick<TypeInfo, 'type' | 'arrayOf'>, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
   return Property(Type.Slice, index, arrayOf, fieldOptions)
 }
 
@@ -236,8 +250,8 @@ function String(index:number = -1, fieldOptions:Partial<FieldOptions> = {}):Prop
 }
 
 // tslint:disable-next-line:function-name
-function Struct(index:number = -1, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
-  return Property(Type.Struct, index, undefined, fieldOptions)
+function Defined(index:number = -1, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
+  return Property(Type.Defined, index, undefined, fieldOptions)
 }
 
 // tslint:disable-next-line:function-name
@@ -261,6 +275,6 @@ export const Field = {
   Array,
   Slice,
   String,
-  Struct,
+  Defined,
   Interface,
 }

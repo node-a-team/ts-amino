@@ -1,5 +1,6 @@
 export enum Type {
-  Bool = 1,
+  Defined, // get a type info from child object
+  Bool,
   Int,
   Int8,
   Int16,

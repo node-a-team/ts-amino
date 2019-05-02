@@ -4,20 +4,16 @@ import { uvarint, constants } from './varint'
 import { TypeInfo, FieldOptions } from './options'
 import { Type, Typ3, Symbols } from './type'
 import { Buffer } from 'buffer/'
-import { typeToTyp3 } from './reflect';
+import { typeToTyp3 } from './reflect'
+import { deferTypeInfo } from './codec'
 
 // tslint:disable-next-line:max-line-length
 export function encodeReflectBinary(info:TypeInfo, value:any, fopts:FieldOptions, bare:boolean):Uint8Array {
-  if (info.type !== Type.Struct && info.type !== Type.Interface) {
-    if (!(value instanceof bigInteger) && typeof value === 'object') {
-      const propertyKey = value[Symbols.typeToPropertyKey]
-      if (!propertyKey) {
-        throw new Error('property key unknown')
-      }
-      // tslint:disable-next-line:no-parameter-reassignment
-      value = value[propertyKey]
-    }
-  }
+  const [deferedInfo, deferedValue] = deferTypeInfo(info, value, '')
+  // tslint:disable-next-line:no-parameter-reassignment
+  info = deferedInfo
+  // tslint:disable-next-line:no-parameter-reassignment
+  value = deferedValue
 
   // TODO: check value is valid / not zero value
 
@@ -27,12 +23,12 @@ export function encodeReflectBinary(info:TypeInfo, value:any, fopts:FieldOptions
     case Type.Interface:
       return encodeReflectBinaryInterface(info, value, fopts, bare)
     case Type.Array:
-      if (value instanceof Uint8Array || (info.arrayOf && info.arrayOf === Type.Uint8)) {
+      if (value instanceof Uint8Array || (info.arrayOf && info.arrayOf.type === Type.Uint8)) {
         return encodeReflectBinaryByteArray(info, value, fopts)
       }
       return encodeReflectBinaryList(info, value, fopts, bare)
     case Type.Slice:
-      if (value instanceof Uint8Array || (info.arrayOf && info.arrayOf === Type.Uint8)) {
+      if (value instanceof Uint8Array || (info.arrayOf && info.arrayOf.type === Type.Uint8)) {
         return encodeReflectBinaryByteSlice(info, value, fopts)
       }
       return encodeReflectBinaryList(info, value, fopts, bare)
@@ -78,6 +74,8 @@ export function encodeReflectBinary(info:TypeInfo, value:any, fopts:FieldOptions
       throw new Error('not yet implemented')
     case Type.String:
       return Encoder.encodeString(value)
+    case Type.Defined:
+      throw new Error('can\'t get a type from child object')
     default:
       throw new Error('unsupported type')
   }
@@ -125,7 +123,8 @@ function encodeReflectBinaryList(info:TypeInfo, value:any[], fopts:FieldOptions,
   }
   const etype = info.arrayOf!
   const einfo:TypeInfo = {
-    type: etype,
+    type: etype.type,
+    arrayOf: etype.arrayOf,
   }
 
   let buf = Buffer.alloc(0)
@@ -175,19 +174,7 @@ function encodeReflectBinaryStruct(info:TypeInfo, value:any, fopts:FieldOptions,
 
       for (let i = 0; i < info.structInfo.fields.length; i += 1) {
         const field = info.structInfo.fields[i]
-        const frv = value[field.name]
-        let finfo:TypeInfo | undefined = value[Symbols.fieldTypeInfoMap][field.name]
-
-        if (!finfo) {
-          throw new Error('should set a type of struct element')
-        }
-
-        if (finfo.type === Type.Struct) {
-          finfo = frv[Symbols.typeInfo]
-          if (!finfo) {
-            throw new Error('unregisterd struct')
-          }
-        }
+        const [finfo, frv] = deferTypeInfo(info, value, field.name)
 
         // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L404
 

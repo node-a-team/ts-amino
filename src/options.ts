@@ -2,7 +2,7 @@ import { Type } from './type'
 
 export interface TypeInfo {
   type:Type,
-  arrayOf?:Type, // if type is array
+  arrayOf?:Pick<TypeInfo, 'type' | 'arrayOf'>, // if type is array
   interfaceInfo?:InterfaceInfo,
   concreteInfo?:ConcreteInfo,
   structInfo?:StructInfo,
@@ -31,12 +31,12 @@ export interface StructInfo {
 export interface FieldInfo {
   name:string,
   type:Type,
-  arrayOf?:Type, // if type is array
+  arrayOf?:Pick<TypeInfo, 'type' | 'arrayOf'>, // if type is array
   index:number,
   fieldOptions:FieldOptions
 }
 
-export function newFieldInfo(name:string, type:Type, index:number, arrayOf?:Type, options:Partial<FieldOptions> = {}):FieldInfo {
+export function newFieldInfo(name:string, type:Type, index:number, arrayOf?:Pick<TypeInfo, 'type' | 'arrayOf'>, options:Partial<FieldOptions> = {}):FieldInfo {
   if (!options.jsonName) {
     options.jsonName = name
   }
