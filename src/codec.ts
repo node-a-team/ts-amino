@@ -28,6 +28,18 @@ export function nameToDisfix(name:string):{disambBytes:Uint8Array, prefixBytes:U
   }
 }
 
+export function setTypeInfo(value:any, typeInfo:TypeInfo) {
+  Object.defineProperty(value.constructor, Symbols.typeInfo, {
+    value: typeInfo,
+    writable: false,
+  })
+}
+
+export function getTypeInfo(value:any):TypeInfo | undefined {
+  const descriptor = Object.getOwnPropertyDescriptor(value.constructor, Symbols.typeInfo)
+  return descriptor ? descriptor.value : undefined
+}
+
 export function deferTypeInfo(info:TypeInfo, value:any, fieldKey:string):[TypeInfo, any] {
   let deferedValue:any = value
   let deferedInfo:TypeInfo | undefined = info
@@ -43,7 +55,7 @@ export function deferTypeInfo(info:TypeInfo, value:any, fieldKey:string):[TypeIn
     }
 
     if (deferedInfo.type === Type.Defined) {
-      deferedInfo = deferedValue[Symbols.typeInfo]
+      deferedInfo = getTypeInfo(deferedValue)
 
       if (!deferedInfo) {
         throw new Error('unregisterd type')
@@ -54,7 +66,7 @@ export function deferTypeInfo(info:TypeInfo, value:any, fieldKey:string):[TypeIn
   let i = 0
   while (deferedInfo.type === Type.Defined) {
     if (typeof deferedValue === 'object') {
-      deferedInfo = deferedValue[Symbols.typeInfo]
+      deferedInfo = getTypeInfo(deferedValue)
       if (!deferedInfo) {
         throw new Error('unregisterd type')
       }

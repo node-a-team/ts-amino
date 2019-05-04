@@ -2,10 +2,10 @@ import * as Encoder from './encoder'
 import bigInteger from 'big-integer'
 import { uvarint, constants } from './varint'
 import { TypeInfo, FieldOptions } from './options'
-import { Type, Typ3, Symbols } from './type'
+import { Type, Typ3 } from './type'
 import { Buffer } from 'buffer/'
 import { typeToTyp3 } from './reflect'
-import { deferTypeInfo } from './codec'
+import { getTypeInfo, deferTypeInfo } from './codec'
 
 // tslint:disable-next-line:max-line-length
 export function encodeReflectBinary(info:TypeInfo, value:any, fopts:FieldOptions, bare:boolean):Uint8Array {
@@ -86,7 +86,7 @@ function encodeReflectBinaryInterface(iinfo:TypeInfo, value:any, fopts:FieldOpti
     return new Uint8Array(1)  // 0x00
   }
 
-  const cinfo:TypeInfo | undefined = value[Symbols.typeInfo]
+  const cinfo:TypeInfo | undefined = getTypeInfo(value)
   if (!cinfo || !cinfo.concreteInfo || !cinfo.concreteInfo.registered) {
     throw new Error('Cannot encode unregistered concrete type')
   }

@@ -1,5 +1,5 @@
 import * as BinaryEncoder from './binary-encode'
-import { nameToDisfix } from './codec'
+import { nameToDisfix, getTypeInfo, setTypeInfo } from './codec'
 import { newFieldInfo, defaultFieldOptions, TypeInfo, FieldOptions, StructInfo, FieldInfo, ConcreteInfo } from './options'
 import { Type, Symbols } from './type'
 import { Buffer } from 'buffer/'
@@ -14,7 +14,7 @@ export function marshalBinaryBare<T = any>(value:T):Uint8Array {
     throw new Error('only support object')
   }
 
-  const typeInfo:TypeInfo | undefined = (value as any)[Symbols.typeInfo]
+  const typeInfo:TypeInfo | undefined = getTypeInfo(value)
   if (!typeInfo) {
     throw new Error('type info should be set')
   }
@@ -47,8 +47,9 @@ export function registerConcrete(name:string, value:any) {
     disamb: disfix.disambBytes,
     prefix: disfix.prefixBytes,
   }
-  if (value[Symbols.typeInfo]) {
-    value[Symbols.typeInfo].concreteInfo = concreteInfo
+  const typeInfo = getTypeInfo(value)
+  if (typeInfo) {
+    typeInfo.concreteInfo = concreteInfo
   } else {
     throw new Error('unregistered type')
   }
@@ -77,7 +78,7 @@ export function registerStruct(value:any, info:Pick<TypeInfo, Exclude<keyof Type
   const resultInfo:TypeInfo = {...{
     type: Type.Struct,
   }, ...info}
-  value[Symbols.typeInfo] = resultInfo
+  setTypeInfo(value, resultInfo)
 }
 
 export function registerType(value:any, info:Pick<TypeInfo, 'type' | 'arrayOf'>, propertyKey:string) {
@@ -86,7 +87,7 @@ export function registerType(value:any, info:Pick<TypeInfo, 'type' | 'arrayOf'>,
   }
 
   value[Symbols.typeToPropertyKey] = propertyKey
-  value[Symbols.typeInfo] = info
+  setTypeInfo(value, info)
 }
 
 // tslint:disable-next-line:function-name
