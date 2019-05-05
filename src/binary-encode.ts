@@ -17,7 +17,21 @@ export function encodeReflectBinary(info:TypeInfo, value:any, fopts:FieldOptions
 
   // TODO: check value is valid / not zero value
 
-  // TODO: handle custom amino marshaler
+  if (info.concreteInfo) {
+    const concreteInfo = info.concreteInfo
+    if (concreteInfo.aminoMarshalerMethod && concreteInfo.aminoMarshalPeprType) {
+      // tslint:disable-next-line:no-parameter-reassignment
+      value = value[info.concreteInfo.aminoMarshalerMethod!]()
+
+      // tslint:disable-next-line:no-parameter-reassignment
+      info = {
+        type: concreteInfo.aminoMarshalPeprType.type,
+        arrayOf: concreteInfo.aminoMarshalPeprType.arrayOf,
+      }
+
+      return encodeReflectBinary(info, value, fopts, bare)
+    }
+  }
 
   switch (info.type) {
     case Type.Interface:
@@ -174,7 +188,19 @@ function encodeReflectBinaryStruct(info:TypeInfo, value:any, fopts:FieldOptions,
 
       for (let i = 0; i < info.structInfo.fields.length; i += 1) {
         const field = info.structInfo.fields[i]
-        const [finfo, frv] = deferTypeInfo(info, value, field.name)
+        let [finfo, frv] = deferTypeInfo(info, value, field.name)
+
+        if (finfo.concreteInfo) {
+          const concreteInfo = finfo.concreteInfo
+          if (concreteInfo.aminoMarshalerMethod && concreteInfo.aminoMarshalPeprType) {
+            frv = frv[finfo.concreteInfo.aminoMarshalerMethod!]()
+
+            finfo = {
+              type: concreteInfo.aminoMarshalPeprType.type,
+              arrayOf: concreteInfo.aminoMarshalPeprType.arrayOf,
+            }
+          }
+        }
 
         // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L404
 

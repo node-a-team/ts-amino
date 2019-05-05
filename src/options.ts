@@ -22,6 +22,9 @@ export interface ConcreteInfo {
   name:string
   disamb:Uint8Array
   prefix:Uint8Array
+
+  aminoMarshalerMethod?:string // name of amino marshaler method
+  aminoMarshalPeprType?:Pick<TypeInfo, 'type' | 'arrayOf'>
 }
 
 export interface StructInfo {

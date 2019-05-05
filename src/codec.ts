@@ -90,13 +90,16 @@ export function deferTypeInfo(info:TypeInfo, value:any, fieldKey:string):[TypeIn
     }
   }
 
-  if (deferedInfo.type !== Type.Struct && deferedInfo.type !== Type.Interface) {
-    if (!(deferedValue instanceof bigInteger) && typeof deferedValue === 'object') {
-      const propertyKey = deferedValue[Symbols.typeToPropertyKey]
-      if (!propertyKey) {
-        throw new Error('property key unknown')
+  if (!deferedInfo.concreteInfo || (!deferedInfo.concreteInfo.aminoMarshalerMethod && !deferedInfo.concreteInfo.aminoMarshalPeprType)) {
+    if (deferedInfo.type !== Type.Struct && deferedInfo.type !== Type.Interface) {
+      if (!(deferedValue instanceof bigInteger) && typeof deferedValue === 'object') {
+        const propertyKey = deferedValue[Symbols.typeToPropertyKey]
+        if (!propertyKey) {
+          throw new Error('property key unknown')
+        }
+
+        deferedValue = deferedValue[propertyKey]
       }
-      deferedValue = deferedValue[propertyKey]
     }
   }
 

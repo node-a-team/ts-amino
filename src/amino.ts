@@ -41,21 +41,34 @@ export function registerConcrete(name:string, value:any) {
 
   const disfix = nameToDisfix(name)
 
-  const concreteInfo:ConcreteInfo = {
-    registered: true,
-    name,
-    disamb: disfix.disambBytes,
-    prefix: disfix.prefixBytes,
-  }
   const typeInfo = getTypeInfo(value)
   if (typeInfo) {
+    let concreteInfo:ConcreteInfo | undefined = typeInfo.concreteInfo
+    if (!concreteInfo) {
+      concreteInfo = {
+        registered: true,
+        name,
+        disamb: disfix.disambBytes,
+        prefix: disfix.prefixBytes,
+      }
+    } else {
+      if (concreteInfo.registered) {
+        throw new Error('concrete already registered')
+      }
+
+      concreteInfo.registered = true
+      concreteInfo.name = name
+      concreteInfo.disamb = disfix.disambBytes
+      concreteInfo.prefix = disfix.prefixBytes
+    }
+
     typeInfo.concreteInfo = concreteInfo
   } else {
     throw new Error('unregistered type')
   }
 }
 
-export function registerStruct(value:any, info:Pick<TypeInfo, Exclude<keyof TypeInfo, 'type' | 'arrayOf' | 'concreteInfo'>>) {
+export function registerStruct(value:any, info:Pick<TypeInfo, Exclude<keyof TypeInfo, 'type' | 'arrayOf'>>) {
   if (typeof value !== 'object') {
     throw new Error('can register only object')
   }
@@ -81,7 +94,7 @@ export function registerStruct(value:any, info:Pick<TypeInfo, Exclude<keyof Type
   setTypeInfo(value, resultInfo)
 }
 
-export function registerType(value:any, info:Pick<TypeInfo, 'type' | 'arrayOf'>, propertyKey:string) {
+export function registerType(value:any, info:Pick<TypeInfo, 'type' | 'arrayOf' | 'concreteInfo'>, propertyKey:string) {
   if (typeof value !== 'object') {
     throw new Error('can register only object')
   }
@@ -93,17 +106,51 @@ export function registerType(value:any, info:Pick<TypeInfo, 'type' | 'arrayOf'>,
 // tslint:disable-next-line:function-name
 export function DefineType():ClassDecorator {
   return (constructor: Function) => {
-    const properties:Property[] = constructor.prototype[Symbols.decoratorTypeInfos]
-    if (!properties || properties.length !== 1) {
+    const decoTypeInfos:DecoratorTypeInfo[] | undefined = constructor.prototype[Symbols.decoratorTypeInfos]
+    if (!decoTypeInfos) {
+      throw new Error('should set only one property to define type')
+    }
+    let property:Property | undefined = undefined
+    let method:Method | undefined = undefined
+    for (let i = 0; i < decoTypeInfos.length; i += 1) {
+      const decoTypeInfo = decoTypeInfos[i]
+      if (decoTypeInfo.type === 'property') {
+        if (property) {
+          throw new Error('should set only one property to define type')
+        }
+        property = decoTypeInfo
+      } else if (decoTypeInfo.type === 'method') {
+        if (method) {
+          throw new Error('should set only one method interface')
+        }
+        method = decoTypeInfo
+      }
+    }
+    if (!property) {
       throw new Error('should set only one property to define type')
     }
 
+    const typeInfo:Pick<TypeInfo, 'type' | 'arrayOf' | 'concreteInfo'> = {
+      type: property.typeInfo.type,
+      arrayOf: property.typeInfo.arrayOf,
+    }
+
+    if (method) {
+      typeInfo.concreteInfo = {
+        registered:false,
+        name:'',
+        disamb: new Uint8Array(),
+        prefix: new Uint8Array(),
+
+        aminoMarshalerMethod: method.aminoMarshalerMethod,
+        aminoMarshalPeprType: method.aminoMarshalPeprType,
+      }
+    }
+
     registerType(
-      constructor.prototype, {
-        type: properties[0].typeInfo.type,
-        arrayOf: properties[0].typeInfo.arrayOf,
-      },
-      properties[0].name,
+      constructor.prototype,
+      typeInfo,
+      property.name,
     )
   }
 }
@@ -112,14 +159,32 @@ export function DefineType():ClassDecorator {
 export function DefineStruct():ClassDecorator {
   return (constructor: Function) => {
     let structInfo:StructInfo | undefined
+    let concreteInfo:ConcreteInfo | undefined
     if (constructor.prototype[Symbols.decoratorTypeInfos]) {
-      const properties:Property[] = constructor.prototype[Symbols.decoratorTypeInfos]
+      const decoTypeInfos:DecoratorTypeInfo[] = constructor.prototype[Symbols.decoratorTypeInfos]
       const fields:FieldInfo[] = []
 
-      for (let i = 0; i < properties.length; i += 1) {
-        const property = properties[i]
+      for (let i = 0; i < decoTypeInfos.length; i += 1) {
+        const decoTypeInfo = decoTypeInfos[i]
 
-        fields.push(newFieldInfo(property.name, property.typeInfo.type, property.index, property.typeInfo.arrayOf,  property.fieldOptions))
+        if (decoTypeInfo.type === 'property') {
+          const property = decoTypeInfo
+          fields.push(newFieldInfo(property.name, property.typeInfo.type, property.index, property.typeInfo.arrayOf,  property.fieldOptions))
+        } else if (decoTypeInfo.type === 'method') {
+          const method = decoTypeInfo
+          if (concreteInfo) {
+            throw new Error('should set only one method interface')
+          }
+          concreteInfo = {
+            registered:false,
+            name:'',
+            disamb: new Uint8Array(),
+            prefix: new Uint8Array(),
+
+            aminoMarshalerMethod: method.aminoMarshalerMethod,
+            aminoMarshalPeprType: method.aminoMarshalPeprType,
+          }
+        }
       }
 
       if (fields.length > 0) {
@@ -131,6 +196,7 @@ export function DefineStruct():ClassDecorator {
 
     registerStruct(constructor.prototype, {
       structInfo,
+      concreteInfo,
     })
   }
 }
@@ -142,11 +208,32 @@ export function Concrete(name:string):ClassDecorator {
   }
 }
 
+type DecoratorTypeInfo = Property | Method
+
 interface Property {
+  type:'property',
   name:string,
   index:number,
   typeInfo:Pick<TypeInfo, 'type' | 'arrayOf'>
   fieldOptions: Partial<FieldOptions>
+}
+
+interface Method {
+  type:'method',
+  aminoMarshalerMethod:string // name of amino marshaler method
+  aminoMarshalPeprType:Pick<TypeInfo, 'type' | 'arrayOf'>
+}
+
+function sortDecoTypeInfos(decoTypeInfos:DecoratorTypeInfo[]) {
+  decoTypeInfos.sort((a, b) => {
+    if (a.type === 'method') {
+      return 1
+    }
+    if (b.type === 'method') {
+      return -1
+    }
+    return a.index - b.index
+  })
 }
 
 // tslint:disable-next-line:function-name
@@ -161,6 +248,7 @@ export function Property(type:Type, index:number = -1, arrayOf?:Pick<TypeInfo, '
     }
 
     const property:Property = {
+      type: 'property',
       name: propertyKey,
       index,
       typeInfo: {
@@ -170,13 +258,20 @@ export function Property(type:Type, index:number = -1, arrayOf?:Pick<TypeInfo, '
       fieldOptions,
     }
 
-    const properties:Property[] = target[Symbols.decoratorTypeInfos]
-    if (index >= 0) {
-      target[Symbols.decoratorTypeInfos] = properties.slice(0, index).concat([property], properties.slice(index))
-    } else {
-      property.index = properties.length
-      properties.push(property)
+    const decoTypeInfos:DecoratorTypeInfo[] = target[Symbols.decoratorTypeInfos]
+    if (index < 0) {
+      let numOfProperty = 0
+      for (let i = 0; i < decoTypeInfos.length; i += 1) {
+        const decoTypeInfo = decoTypeInfos[i]
+        if (decoTypeInfo.type === 'property') {
+          numOfProperty += 1
+        }
+      }
+      property.index = numOfProperty
     }
+
+    decoTypeInfos.push(property)
+    sortDecoTypeInfos(decoTypeInfos)
   }
 }
 
@@ -258,6 +353,35 @@ function Defined(index:number = -1, fieldOptions:Partial<FieldOptions> = {}):Pro
 // tslint:disable-next-line:function-name
 function Interface(index:number = -1, fieldOptions:Partial<FieldOptions> = {}):PropertyDecorator {
   return Property(Type.Interface, index, undefined, fieldOptions)
+}
+
+// tslint:disable-next-line:function-name
+function AminoMarshaler(type:Pick<TypeInfo, 'type' | 'arrayOf'>):MethodDecorator {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+    if (typeof propertyKey === 'symbol') {
+      throw new Error('can not set property key as symbol')
+    }
+
+    if (!target[Symbols.decoratorTypeInfos]) {
+      target[Symbols.decoratorTypeInfos] = []
+    }
+
+    const method:Method = {
+      type: 'method',
+      aminoMarshalerMethod: propertyKey,
+      aminoMarshalPeprType: type,
+    }
+
+    const decoTypeInfos:DecoratorTypeInfo[] = target[Symbols.decoratorTypeInfos]
+
+    decoTypeInfos.push(method)
+    sortDecoTypeInfos(decoTypeInfos)
+  }
+}
+
+// tslint:disable-next-line:variable-name
+export const Method = {
+  AminoMarshaler,
 }
 
 // tslint:disable-next-line:variable-name
