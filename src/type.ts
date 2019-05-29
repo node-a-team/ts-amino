@@ -18,7 +18,7 @@ export enum Type {
   Slice,
   String,
   Struct,
-  Interface,
+  Interface
 }
 
 export enum Typ3 {
@@ -27,38 +27,38 @@ export enum Typ3 {
   ByteLength = 2,
   // Struct = 3,
   // StructTerm = 4,
-  Byte4 = 5,
+  Byte4 = 5
   // List = 6,
   // Interface = 7,
 }
 
 // tslint:disable-next-line:variable-name
 export const Symbols = {
-  typeInfo: Symbol('typeInfo'),
-  typeToPropertyKey: Symbol('typeToPropertyKey'),
-  decoratorTypeInfos: Symbol('decoratorTypeInfos'),
-  fieldTypeInfoMap: Symbol('fieldTypeInfoMap'),
-}
+  typeInfo: Symbol("typeInfo"),
+  typeToPropertyKey: Symbol("typeToPropertyKey"),
+  decoratorTypeInfos: Symbol("decoratorTypeInfos"),
+  fieldTypeInfoMap: Symbol("fieldTypeInfoMap")
+};
 
-export function typ3ToString(typ3:Typ3):string {
+export function typ3ToString(typ3: Typ3): string {
   switch (typ3) {
     case Typ3.Varint:
-      return '(U)Varint'
+      return "(U)Varint";
     case Typ3.Byte8:
-      return '8Byte'
+      return "8Byte";
     case Typ3.ByteLength:
-      return 'ByteLength'
+      return "ByteLength";
     // case Typ3_Struct:
     //  return "Struct"
     // case Typ3_StructTerm:
     // 	return "StructTerm"
     case Typ3.Byte4:
-      return '4Byte'
+      return "4Byte";
     // case Typ3_List:
     // 	return "List"
     // case Typ3_Interface:
     // 	return "Interface"
     default:
-      return `<Invalid Typ3 ${typ3}>`
+      return `<Invalid Typ3 ${typ3}>`;
   }
 }

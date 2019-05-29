@@ -7,8 +7,14 @@
     "build": "tsc",
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
     "lint": "tslint -c tslint.json -p tsconfig.json",
-    "lint-fix": "tslint -c tslint.json -p tsconfig.json --fix"
+    "lint-fix": "tslint -c tslint.json -p tsconfig.json --fix",
+    "prettier": "find ./src -type f | xargs prettier --check",
+    "prettier-write": "find ./src -type f | xargs prettier --write"
   },
+  "pre-commit": [
+    "lint",
+    "prettier"
+  ],
   "author": "Thunnini",
   "license": "Apache-2.0",
   "dependencies": {
@@ -21,9 +27,12 @@
     "@types/node": "^11.13.2",
     "@types/sha.js": "^2.4.0",
     "mocha": "^6.1.4",
+    "pre-commit": "^1.2.2",
+    "prettier": "^1.17.1",
     "ts-node": "^8.1.0",
     "tslint": "^5.15.0",
-    "tslint-config-airbnb": "^5.11.1",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-plugin-prettier": "^2.0.1",
     "typescript": "^3.4.2"
   }
 }
