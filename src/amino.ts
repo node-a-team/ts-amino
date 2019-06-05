@@ -3,6 +3,7 @@ import { Buffer } from "buffer/";
 import * as BinaryEncoder from "./binary-encode";
 import { getTypeInfo, nameToDisfix, setTypeInfo } from "./codec";
 import * as Encoder from "./encoder";
+import * as JsonEncoder from "./json-encode";
 import {
   ConcreteInfo,
   defaultFieldOptions,
@@ -52,6 +53,45 @@ export function marshalBinaryLengthPrefixed<T = any>(value: T): Uint8Array {
   ]);
 
   return bz;
+}
+
+export function marshalJson<T = any>(
+  value: T,
+  space?: string | number
+): string {
+  if (!value) {
+    throw new Error("value is null");
+  }
+
+  if (typeof value !== "object") {
+    throw new Error("only support object");
+  }
+
+  const typeInfo: TypeInfo | undefined = getTypeInfo(value);
+  if (!typeInfo) {
+    throw new Error("type info should be set");
+  }
+
+  let result = "";
+  if (typeInfo.concreteInfo && typeInfo.concreteInfo.registered) {
+    result = `{"type":"${typeInfo.concreteInfo.name}","value":`;
+  }
+
+  result += JsonEncoder.encodeReflectJSON(
+    typeInfo,
+    value,
+    defaultFieldOptions({ binFieldNum: 1 })
+  );
+
+  if (typeInfo.concreteInfo && typeInfo.concreteInfo.registered) {
+    result += "}";
+  }
+
+  if (space) {
+    result = JSON.stringify(JSON.parse(result), null, space);
+  }
+
+  return result;
 }
 
 export function registerConcrete(name: string, value: any) {

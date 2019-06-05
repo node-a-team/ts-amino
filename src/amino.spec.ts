@@ -1,3 +1,4 @@
+import assert = require("assert");
 import bigInteger from "big-integer";
 // tslint:disable-next-line: no-implicit-dependencies
 import "mocha";
@@ -6,20 +7,27 @@ import {
   DefineStruct,
   DefineType,
   Field,
-  marshalBinaryBare
+  marshalBinaryBare,
+  marshalJson,
+  Method
 } from "./amino";
+import { Type } from "./type";
+
+// tslint:disable: no-console
+// tslint:disable: max-classes-per-file
 
 @Concrete("test")
 @DefineStruct()
 class Test {
-  @Field.Int64()
+  @Field.Int64(0, {
+    jsonName: "test"
+  })
   public int64: bigInteger.BigInteger = bigInteger(4230802);
 
   @Field.Uint16()
   public uint16: number = 10;
 }
 
-// tslint:disable-next-line: max-classes-per-file
 @Concrete("concrete-with-struct")
 @DefineStruct()
 class Test2 {
@@ -27,7 +35,6 @@ class Test2 {
   public test: Test = new Test();
 }
 
-// tslint:disable-next-line: max-classes-per-file
 @Concrete("concrete-with-interface")
 @DefineStruct()
 class Test3 {
@@ -35,7 +42,6 @@ class Test3 {
   public test: Test = new Test();
 }
 
-// tslint:disable-next-line: max-classes-per-file
 @Concrete("concrete-with-deep-definition")
 @DefineStruct()
 class Test4 {
@@ -43,11 +49,15 @@ class Test4 {
   public test: Definition = new Definition();
 }
 
-// tslint:disable-next-line: max-classes-per-file
 @DefineType()
 class Definition {
-  @Field.Defined()
-  public test: Test = new Test();
+  @Field.String()
+  public test: string = "should not visibile";
+
+  @Method.AminoMarshaler({ type: Type.String })
+  public marshalAmino(): string {
+    return "test";
+  }
 }
 
 describe("Test amino", () => {
@@ -56,8 +66,11 @@ describe("Test amino", () => {
 
     const bz = marshalBinaryBare(test);
 
-    // tslint:disable-next-line: no-console
-    console.log(Buffer.from(bz).toString("hex"));
+    assert.equal(Buffer.from(bz).toString("hex"), "81884c7d08929d8202100a");
+    assert.equal(
+      marshalJson(test),
+      `{"type":"test","value":{"test":"4230802","uint16":10}}`
+    );
   });
 
   it("test concrete with struct", () => {
@@ -65,8 +78,11 @@ describe("Test amino", () => {
 
     const bz = marshalBinaryBare(test);
 
-    // tslint:disable-next-line: no-console
-    console.log(Buffer.from(bz).toString("hex"));
+    assert.equal(Buffer.from(bz).toString("hex"), "43e99ea80a0708929d8202100a");
+    assert.equal(
+      marshalJson(test),
+      `{"type":"concrete-with-struct","value":{"test":{"test":"4230802","uint16":10}}}`
+    );
   });
 
   it("test concrete with interface", () => {
@@ -74,8 +90,14 @@ describe("Test amino", () => {
 
     const bz = marshalBinaryBare(test);
 
-    // tslint:disable-next-line: no-console
-    console.log(Buffer.from(bz).toString("hex"));
+    assert.equal(
+      Buffer.from(bz).toString("hex"),
+      "f0de397d0a0b81884c7d08929d8202100a"
+    );
+    assert.equal(
+      marshalJson(test),
+      `{"type":"concrete-with-interface","value":{"test":{"type":"test","value":{"test":"4230802","uint16":10}}}}`
+    );
   });
 
   it("test concrete with deep definition", () => {
@@ -83,7 +105,10 @@ describe("Test amino", () => {
 
     const bz = marshalBinaryBare(test);
 
-    // tslint:disable-next-line: no-console
-    console.log(Buffer.from(bz).toString("hex"));
+    assert.equal(Buffer.from(bz).toString("hex"), "e456c43f0a0474657374");
+    assert.equal(
+      marshalJson(test),
+      `{"type":"concrete-with-deep-definition","value":{"test":"test"}}`
+    );
   });
 });
