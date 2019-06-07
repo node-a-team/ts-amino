@@ -41,7 +41,8 @@ function getTypeInfo(value) {
     return descriptor ? descriptor.value : undefined;
 }
 exports.getTypeInfo = getTypeInfo;
-function deferTypeInfo(info, value, fieldKey) {
+function deferTypeInfo(info, value, fieldKey, forJSON) {
+    if (forJSON === void 0) { forJSON = false; }
     var deferedValue = value;
     var deferedInfo = info;
     if (fieldKey) {
@@ -84,13 +85,17 @@ function deferTypeInfo(info, value, fieldKey) {
             throw new Error("too deep definition or may invalid type");
         }
     }
-    if (!deferedInfo.concreteInfo ||
-        (!deferedInfo.concreteInfo.aminoMarshalerMethod &&
-            !deferedInfo.concreteInfo.aminoMarshalPeprType)) {
+    if ((!forJSON || (forJSON && !deferedValue.marshalJSON)) &&
+        (!deferedInfo.concreteInfo ||
+            (!deferedInfo.concreteInfo.aminoMarshalerMethod &&
+                !deferedInfo.concreteInfo.aminoMarshalPeprType))) {
         if (deferedInfo.type !== type_1.Type.Struct &&
             deferedInfo.type !== type_1.Type.Interface) {
             if (!(deferedValue instanceof big_integer_1.default) &&
-                typeof deferedValue === "object") {
+                typeof deferedValue === "object" &&
+                !(deferedValue instanceof Uint8Array) &&
+                !Array.isArray(deferedValue) &&
+                !buffer_1.Buffer.isBuffer(deferedValue)) {
                 var propertyKey = deferedValue[type_1.Symbols.typeToPropertyKey];
                 if (!propertyKey) {
                     throw new Error("property key unknown");

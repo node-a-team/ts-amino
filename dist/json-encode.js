@@ -5,7 +5,7 @@ var buffer_1 = require("buffer/");
 var codec_1 = require("./codec");
 var type_1 = require("./type");
 function encodeReflectJSON(info, value, fopts) {
-    var _a = codec_1.deferTypeInfo(info, value, ""), deferedInfo = _a[0], deferedValue = _a[1];
+    var _a = codec_1.deferTypeInfo(info, value, "", true), deferedInfo = _a[0], deferedValue = _a[1];
     // tslint:disable-next-line:no-parameter-reassignment
     info = deferedInfo;
     // tslint:disable-next-line:no-parameter-reassignment
@@ -84,13 +84,13 @@ function encodeReflectJSONInterface(iinfo, value, fopts) {
 }
 function encodeReflectJSONList(info, value, fopts) {
     // if null
-    if (!value) {
+    if (!value || value.length === 0) {
         return "null";
     }
     // if type is byte array
     if (value instanceof Uint8Array ||
         (info.arrayOf && info.arrayOf.type === type_1.Type.Uint8)) {
-        return buffer_1.Buffer.from(value).toString("base64");
+        return "\"" + buffer_1.Buffer.from(value).toString("base64") + "\"";
     }
     if (!info.arrayOf) {
         throw new Error("should set a type of array element");
@@ -121,7 +121,7 @@ function encodeReflectJSONStruct(info, value, fopts) {
     // tslint:disable-next-line: forin
     for (var key in info.structInfo.fields) {
         var field = info.structInfo.fields[key];
-        var _a = codec_1.deferTypeInfo(info, value, field.name), finfo = _a[0], frv = _a[1];
+        var _a = codec_1.deferTypeInfo(info, value, field.name, true), finfo = _a[0], frv = _a[1];
         if (finfo.concreteInfo) {
             var concreteInfo = finfo.concreteInfo;
             if (concreteInfo.aminoMarshalerMethod &&

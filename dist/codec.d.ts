@@ -8,4 +8,4 @@ export declare function nameToDisfix(name: string): {
 };
 export declare function setTypeInfo(value: any, typeInfo: TypeInfo): void;
 export declare function getTypeInfo(value: any): TypeInfo | undefined;
-export declare function deferTypeInfo(info: TypeInfo, value: any, fieldKey: string): [TypeInfo, any];
+export declare function deferTypeInfo(info: TypeInfo, value: any, fieldKey: string, forJSON?: boolean): [TypeInfo, any];

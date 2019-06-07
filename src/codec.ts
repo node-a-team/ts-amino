@@ -52,7 +52,8 @@ export function getTypeInfo(value: any): TypeInfo | undefined {
 export function deferTypeInfo(
   info: TypeInfo,
   value: any,
-  fieldKey: string
+  fieldKey: string,
+  forJSON: boolean = false
 ): [TypeInfo, any] {
   let deferedValue: any = value;
   let deferedInfo: TypeInfo | undefined = info;
@@ -104,9 +105,10 @@ export function deferTypeInfo(
   }
 
   if (
-    !deferedInfo.concreteInfo ||
-    (!deferedInfo.concreteInfo.aminoMarshalerMethod &&
-      !deferedInfo.concreteInfo.aminoMarshalPeprType)
+    (!forJSON || (forJSON && !deferedValue.marshalJSON)) &&
+    (!deferedInfo.concreteInfo ||
+      (!deferedInfo.concreteInfo.aminoMarshalerMethod &&
+        !deferedInfo.concreteInfo.aminoMarshalPeprType))
   ) {
     if (
       deferedInfo.type !== Type.Struct &&
@@ -114,7 +116,10 @@ export function deferTypeInfo(
     ) {
       if (
         !(deferedValue instanceof bigInteger) &&
-        typeof deferedValue === "object"
+        typeof deferedValue === "object" &&
+        !(deferedValue instanceof Uint8Array) &&
+        !Array.isArray(deferedValue) &&
+        !Buffer.isBuffer(deferedValue)
       ) {
         const propertyKey = deferedValue[Symbols.typeToPropertyKey];
         if (!propertyKey) {

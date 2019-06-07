@@ -173,42 +173,47 @@ function encodeReflectBinaryList(
     throw new Error("should set a type of array element");
   }
   const etype = info.arrayOf!;
-  const einfo: TypeInfo = {
+  let einfo: TypeInfo = {
     type: etype.type,
     arrayOf: etype.arrayOf
   };
 
   let buf = Buffer.alloc(0);
 
-  const typ3 = typeToTyp3(einfo.type, fopts);
-  if (typ3 !== Typ3.ByteLength) {
-    for (const v of value) {
-      buf = Buffer.concat([
-        buf,
-        Buffer.from(encodeReflectBinary(einfo, v, fopts, false))
-      ]);
-    }
-  } else {
-    for (const v of value) {
-      buf = Buffer.concat([
-        buf,
-        Buffer.from(
-          encodeFieldNumberAndTyp3(fopts.binFieldNum, Typ3.ByteLength)
-        )
-      ]);
+  if (value.length > 0) {
+    const [deferedInfo] = deferTypeInfo(einfo, value[0], "");
+    einfo = deferedInfo;
 
-      // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L311
+    const typ3 = typeToTyp3(deferedInfo.type, fopts);
+    if (typ3 !== Typ3.ByteLength) {
+      for (const v of value) {
+        buf = Buffer.concat([
+          buf,
+          Buffer.from(encodeReflectBinary(einfo, v, fopts, false))
+        ]);
+      }
+    } else {
+      for (const v of value) {
+        buf = Buffer.concat([
+          buf,
+          Buffer.from(
+            encodeFieldNumberAndTyp3(fopts.binFieldNum, Typ3.ByteLength)
+          )
+        ]);
 
-      const efopts = {
-        ...fopts,
-        ...{
-          binFieldNum: 1
-        }
-      };
-      buf = Buffer.concat([
-        buf,
-        Buffer.from(encodeReflectBinary(einfo, v, efopts, false))
-      ]);
+        // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L311
+
+        const efopts = {
+          ...fopts,
+          ...{
+            binFieldNum: 1
+          }
+        };
+        buf = Buffer.concat([
+          buf,
+          Buffer.from(encodeReflectBinary(einfo, v, efopts, false))
+        ]);
+      }
     }
   }
 

@@ -9,7 +9,7 @@ export function encodeReflectJSON(
   value: any,
   fopts: FieldOptions
 ): string {
-  const [deferedInfo, deferedValue] = deferTypeInfo(info, value, "");
+  const [deferedInfo, deferedValue] = deferTypeInfo(info, value, "", true);
   // tslint:disable-next-line:no-parameter-reassignment
   info = deferedInfo;
   // tslint:disable-next-line:no-parameter-reassignment
@@ -108,7 +108,7 @@ function encodeReflectJSONList(
   fopts: FieldOptions
 ): string {
   // if null
-  if (!value) {
+  if (!value || value.length === 0) {
     return "null";
   }
 
@@ -117,7 +117,7 @@ function encodeReflectJSONList(
     value instanceof Uint8Array ||
     (info.arrayOf && info.arrayOf.type === Type.Uint8)
   ) {
-    return Buffer.from(value).toString("base64");
+    return `"${Buffer.from(value).toString("base64")}"`;
   }
 
   if (!info.arrayOf) {
@@ -157,7 +157,7 @@ function encodeReflectJSONStruct(
   // tslint:disable-next-line: forin
   for (const key in info.structInfo.fields) {
     const field = info.structInfo.fields[key];
-    let [finfo, frv] = deferTypeInfo(info, value, field.name);
+    let [finfo, frv] = deferTypeInfo(info, value, field.name, true);
 
     if (finfo.concreteInfo) {
       const concreteInfo = finfo.concreteInfo;
