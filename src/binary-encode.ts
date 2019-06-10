@@ -265,6 +265,31 @@ function encodeReflectBinaryStruct(
           }
         }
 
+        if (!frv && !fopts.writeEmpty) {
+          continue;
+        }
+        if (Array.isArray(frv) && frv.length === 0 && !fopts.writeEmpty) {
+          continue;
+        }
+
+        // Case for unpacked list
+        if (
+          (finfo.type === Type.Array || finfo.type === Type.Slice) &&
+          !(
+            (finfo.arrayOf && finfo.arrayOf.type === Type.Uint8) ||
+            frv instanceof Uint8Array
+          ) &&
+          typeToTyp3(finfo.type, field.fieldOptions) === Typ3.ByteLength
+        ) {
+          buf = Buffer.concat([
+            buf,
+            Buffer.from(
+              encodeReflectBinaryList(finfo, frv, field.fieldOptions, true)
+            )
+          ]);
+          continue;
+        }
+
         // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L404
 
         // TODO: handling unpacked list https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L409

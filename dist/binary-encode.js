@@ -158,31 +158,35 @@ function encodeReflectBinaryList(info, value, fopts, bare) {
         arrayOf: etype.arrayOf
     };
     var buf = buffer_1.Buffer.alloc(0);
-    var typ3 = reflect_1.typeToTyp3(einfo.type, fopts);
-    if (typ3 !== type_1.Typ3.ByteLength) {
-        for (var _i = 0, value_1 = value; _i < value_1.length; _i++) {
-            var v = value_1[_i];
-            buf = buffer_1.Buffer.concat([
-                buf,
-                buffer_1.Buffer.from(encodeReflectBinary(einfo, v, fopts, false))
-            ]);
+    if (value.length > 0) {
+        var deferedInfo = codec_1.deferTypeInfo(einfo, value[0], "")[0];
+        einfo = deferedInfo;
+        var typ3 = reflect_1.typeToTyp3(deferedInfo.type, fopts);
+        if (typ3 !== type_1.Typ3.ByteLength) {
+            for (var _i = 0, value_1 = value; _i < value_1.length; _i++) {
+                var v = value_1[_i];
+                buf = buffer_1.Buffer.concat([
+                    buf,
+                    buffer_1.Buffer.from(encodeReflectBinary(einfo, v, fopts, false))
+                ]);
+            }
         }
-    }
-    else {
-        for (var _a = 0, value_2 = value; _a < value_2.length; _a++) {
-            var v = value_2[_a];
-            buf = buffer_1.Buffer.concat([
-                buf,
-                buffer_1.Buffer.from(encodeFieldNumberAndTyp3(fopts.binFieldNum, type_1.Typ3.ByteLength))
-            ]);
-            // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L311
-            var efopts = __assign({}, fopts, {
-                binFieldNum: 1
-            });
-            buf = buffer_1.Buffer.concat([
-                buf,
-                buffer_1.Buffer.from(encodeReflectBinary(einfo, v, efopts, false))
-            ]);
+        else {
+            for (var _a = 0, value_2 = value; _a < value_2.length; _a++) {
+                var v = value_2[_a];
+                buf = buffer_1.Buffer.concat([
+                    buf,
+                    buffer_1.Buffer.from(encodeFieldNumberAndTyp3(fopts.binFieldNum, type_1.Typ3.ByteLength))
+                ]);
+                // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L311
+                var efopts = __assign({}, fopts, {
+                    binFieldNum: 1
+                });
+                buf = buffer_1.Buffer.concat([
+                    buf,
+                    buffer_1.Buffer.from(encodeReflectBinary(einfo, v, efopts, false))
+                ]);
+            }
         }
     }
     if (bare) {
@@ -215,6 +219,23 @@ function encodeReflectBinaryStruct(info, value, fopts, bare) {
                             arrayOf: concreteInfo.aminoMarshalPeprType.arrayOf
                         };
                     }
+                }
+                if (!frv && !fopts.writeEmpty) {
+                    continue;
+                }
+                if (Array.isArray(frv) && frv.length === 0 && !fopts.writeEmpty) {
+                    continue;
+                }
+                // Case for unpacked list
+                if ((finfo.type === type_1.Type.Array || finfo.type === type_1.Type.Slice) &&
+                    !((finfo.arrayOf && finfo.arrayOf.type === type_1.Type.Uint8) ||
+                        frv instanceof Uint8Array) &&
+                    reflect_1.typeToTyp3(finfo.type, field.fieldOptions) === type_1.Typ3.ByteLength) {
+                    buf = buffer_1.Buffer.concat([
+                        buf,
+                        buffer_1.Buffer.from(encodeReflectBinaryList(finfo, frv, field.fieldOptions, true))
+                    ]);
+                    continue;
                 }
                 // TODO: handling default https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L404
                 // TODO: handling unpacked list https://github.com/tendermint/go-amino/blob/master/binary-encode.go#L409
