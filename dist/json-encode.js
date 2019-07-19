@@ -11,7 +11,7 @@ function encodeReflectJSON(info, value, fopts) {
     // tslint:disable-next-line:no-parameter-reassignment
     value = deferedValue;
     // Write null if necessary
-    if (!value) {
+    if (value === null || value === undefined) {
         return "null";
     }
     // TODO: handle time type

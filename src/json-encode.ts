@@ -16,7 +16,7 @@ export function encodeReflectJSON(
   value = deferedValue;
 
   // Write null if necessary
-  if (!value) {
+  if (value === null || value === undefined) {
     return "null";
   }
 
