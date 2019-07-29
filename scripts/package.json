@@ -1,0 +1,13 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "bin": {
+    "ts-amino-test": "./test.js",
+    "ts-amino-deploy": "./deploy.js"
+  },
+  "dependencies": {
+    "commander": "^2.20.0",
+    "semver": "^6.1.2",
+    "shelljs": "^0.8.3"
+  }
+}

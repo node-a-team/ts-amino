@@ -1,0 +1,67 @@
+version: 2
+jobs:
+  test:
+    docker:
+      # specify the version you desire here
+      - image: circleci/node:10.15.3
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/mongo:3.4.4
+
+    working_directory: ~/ts-amino
+
+    steps:
+      - checkout
+      - run: npm install
+      - run: 
+          path: ~/ts-amino/scripts
+          command: npm install
+      - run:
+          path: ~/ts-amino/scripts
+          command: sudo npm install -g
+      - run:
+          path: ~/ts-amino/scripts
+          command: ts-amino-test
+  deploy:
+    docker:
+      # specify the version you desire here
+      - image: circleci/node:10.15.3
+
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/mongo:3.4.4
+
+    working_directory: ~/ts-amino
+
+    steps:
+      - checkout
+      - run: npm install
+      - run: 
+          path: ~/ts-amino/scripts
+          command: npm install
+      - run:
+          path: ~/ts-amino/scripts
+          command: sudo npm install -g
+      - run:
+          path: ~/ts-amino/scripts
+          command: ts-amino-deploy --npm-token=${NPM_AUTH}
+
+workflows:
+  version: 2
+  test-deploy:
+    jobs:
+      - test:
+          filters:
+            tags:
+              only: /.*/
+      - deploy:
+          requires:
+            - test
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+-?[\w.]*$/

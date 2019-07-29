@@ -1,8 +1,9 @@
 {
-  "name": "ts-amino",
-  "version": "0.0.1",
+  "name": "@node-a-team/ts-amino",
+  "version": "v0.0.1-alpha.1",
   "description": "javascript/typescript version amino",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "mocha -r ts-node/register src/**/*.spec.ts",
