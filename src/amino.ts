@@ -9,6 +9,7 @@ import {
   TypeInfo
 } from "./options";
 import { Symbols, Type } from "./type";
+import { setTypeInfo } from "./util";
 
 export const globalCodec = new Codec();
 
@@ -35,7 +36,31 @@ export function registerStruct(
   value: any,
   info: Pick<TypeInfo, Exclude<keyof TypeInfo, "type" | "arrayOf">>
 ) {
-  globalCodec.registerStruct(value, info);
+  if (typeof value !== "object") {
+    throw new Error("can register only object");
+  }
+
+  if (!value[Symbols.fieldTypeInfoMap]) {
+    value[Symbols.fieldTypeInfoMap] = {};
+  }
+
+  if (info.structInfo && info.structInfo.fields) {
+    for (const field of info.structInfo.fields) {
+      const typeInfo: TypeInfo = {
+        type: field.type,
+        arrayOf: field.arrayOf
+      };
+      value[Symbols.fieldTypeInfoMap][field.name] = typeInfo;
+    }
+  }
+
+  const resultInfo: TypeInfo = {
+    ...{
+      type: Type.Struct
+    },
+    ...info
+  };
+  setTypeInfo(value, resultInfo);
 }
 
 export function registerType(
@@ -43,7 +68,12 @@ export function registerType(
   info: Pick<TypeInfo, "type" | "arrayOf" | "concreteInfo">,
   propertyKey: string
 ) {
-  globalCodec.registerType(value, info, propertyKey);
+  if (typeof value !== "object") {
+    throw new Error("can register only object");
+  }
+
+  value[Symbols.typeToPropertyKey] = propertyKey;
+  setTypeInfo(value, info);
 }
 
 // tslint:disable-next-line:function-name

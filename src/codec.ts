@@ -4,13 +4,8 @@ import * as BinaryEncoder from "./binary-encode";
 import * as Encoder from "./encoder";
 import * as JsonEncoder from "./json-encode";
 import { ConcreteInfo, defaultFieldOptions, TypeInfo } from "./options";
-import { CodecSymbols, Symbols, Type } from "./type";
-import {
-  getTypeInfo,
-  nameToDisfix,
-  setConcreteInfoForCodec,
-  setTypeInfo
-} from "./util";
+import { CodecSymbols } from "./type";
+import { getTypeInfo, nameToDisfix, setConcreteInfoForCodec } from "./util";
 
 export class Codec {
   private readonly symbolConcreteInfo = Symbol("concreateInfo");
@@ -134,49 +129,5 @@ export class Codec {
     } else {
       throw new Error("unregistered type");
     }
-  }
-
-  public registerStruct(
-    value: any,
-    info: Pick<TypeInfo, Exclude<keyof TypeInfo, "type" | "arrayOf">>
-  ) {
-    if (typeof value !== "object") {
-      throw new Error("can register only object");
-    }
-
-    if (!value[Symbols.fieldTypeInfoMap]) {
-      value[Symbols.fieldTypeInfoMap] = {};
-    }
-
-    if (info.structInfo && info.structInfo.fields) {
-      for (const field of info.structInfo.fields) {
-        const typeInfo: TypeInfo = {
-          type: field.type,
-          arrayOf: field.arrayOf
-        };
-        value[Symbols.fieldTypeInfoMap][field.name] = typeInfo;
-      }
-    }
-
-    const resultInfo: TypeInfo = {
-      ...{
-        type: Type.Struct
-      },
-      ...info
-    };
-    setTypeInfo(value, resultInfo);
-  }
-
-  public registerType(
-    value: any,
-    info: Pick<TypeInfo, "type" | "arrayOf" | "concreteInfo">,
-    propertyKey: string
-  ) {
-    if (typeof value !== "object") {
-      throw new Error("can register only object");
-    }
-
-    value[Symbols.typeToPropertyKey] = propertyKey;
-    setTypeInfo(value, info);
   }
 }
