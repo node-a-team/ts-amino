@@ -11,6 +11,7 @@ import {
   marshalJson,
   Method
 } from "./amino";
+import { Codec } from "./codec";
 import { Type } from "./type";
 
 // tslint:disable: no-console
@@ -104,6 +105,25 @@ describe("Test amino", () => {
     const test = new Test4();
 
     const bz = marshalBinaryBare(test);
+
+    assert.equal(Buffer.from(bz).toString("hex"), "e456c43f0a0474657374");
+    assert.equal(
+      marshalJson(test),
+      `{"type":"concrete-with-deep-definition","value":{"test":"test"}}`
+    );
+  });
+
+  it("test codec", () => {
+    const codec = new Codec();
+
+    codec.registerConcrete("test", Test.prototype);
+    codec.registerConcrete("concrete-with-struct", Test2.prototype);
+    codec.registerConcrete("concrete-with-interface", Test3.prototype);
+    codec.registerConcrete("concrete-with-deep-definition", Test4.prototype);
+
+    const test = new Test4();
+
+    const bz = codec.marshalBinaryBare(test);
 
     assert.equal(Buffer.from(bz).toString("hex"), "e456c43f0a0474657374");
     assert.equal(

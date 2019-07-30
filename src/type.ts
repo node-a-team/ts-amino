@@ -40,6 +40,10 @@ export const Symbols = {
   fieldTypeInfoMap: Symbol("fieldTypeInfoMap")
 };
 
+export interface CodecSymbols {
+  concreteInfo: symbol;
+}
+
 export function typ3ToString(typ3: Typ3): string {
   switch (typ3) {
     case Typ3.Varint:

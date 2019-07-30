@@ -2,7 +2,8 @@ import bigInteger from "big-integer";
 // tslint:disable-next-line: no-submodule-imports
 import { Buffer } from "buffer/";
 import { sha256 } from "sha.js";
-import { TypeInfo } from "./options";
+import { Codec } from "./codec";
+import { ConcreteInfo, TypeInfo } from "./options";
 import { Symbols, Type } from "./type";
 
 export const prefixBytesLen = 4;
@@ -41,15 +42,48 @@ export function setTypeInfo(value: any, typeInfo: TypeInfo) {
   });
 }
 
-export function getTypeInfo(value: any): TypeInfo | undefined {
+export function setConcreteInfoForCodec(
+  codec: Codec,
+  value: any,
+  concreteInfo: ConcreteInfo
+) {
+  const typeInfo = getTypeInfo(codec, value);
+  if (typeInfo) {
+    Object.defineProperty(value.constructor, codec.symbols.concreteInfo, {
+      value: concreteInfo,
+      writable: false
+    });
+  } else {
+    throw new Error("can't set concrete info for unregistered type");
+  }
+}
+
+export function getTypeInfo(codec: Codec, value: any): TypeInfo | undefined {
   const descriptor = Object.getOwnPropertyDescriptor(
     value.constructor,
     Symbols.typeInfo
   );
-  return descriptor ? descriptor.value : undefined;
+  if (!descriptor) {
+    return undefined;
+  }
+  let typeInfo: TypeInfo = descriptor.value;
+
+  const concreteDescriptor = Object.getOwnPropertyDescriptor(
+    value.constructor,
+    codec.symbols.concreteInfo
+  );
+  if (!concreteDescriptor) {
+    return typeInfo;
+  } else {
+    // shallow copy
+    typeInfo = { ...typeInfo };
+    typeInfo.concreteInfo = concreteDescriptor.value;
+    return typeInfo;
+  }
 }
 
 export function deferTypeInfo(
+  codec: Codec,
   info: TypeInfo,
   value: any,
   fieldKey: string,
@@ -69,7 +103,7 @@ export function deferTypeInfo(
     }
 
     if (deferedInfo.type === Type.Defined) {
-      deferedInfo = getTypeInfo(deferedValue);
+      deferedInfo = getTypeInfo(codec, deferedValue);
 
       if (!deferedInfo) {
         throw new Error("unregisterd type");
@@ -80,7 +114,7 @@ export function deferTypeInfo(
   let i = 0;
   while (deferedInfo.type === Type.Defined) {
     if (typeof deferedValue === "object") {
-      deferedInfo = getTypeInfo(deferedValue);
+      deferedInfo = getTypeInfo(codec, deferedValue);
       if (!deferedInfo) {
         throw new Error("unregisterd type");
       }

@@ -1,15 +1,23 @@
 // tslint:disable-next-line: no-submodule-imports
 import { Buffer } from "buffer/";
+import { Codec } from "./codec";
 import { FieldOptions, TypeInfo } from "./options";
 import { Type } from "./type";
 import { deferTypeInfo, getTypeInfo } from "./util";
 
 export function encodeReflectJSON(
+  codec: Codec,
   info: TypeInfo,
   value: any,
   fopts: FieldOptions
 ): string {
-  const [deferedInfo, deferedValue] = deferTypeInfo(info, value, "", true);
+  const [deferedInfo, deferedValue] = deferTypeInfo(
+    codec,
+    info,
+    value,
+    "",
+    true
+  );
   // tslint:disable-next-line:no-parameter-reassignment
   info = deferedInfo;
   // tslint:disable-next-line:no-parameter-reassignment
@@ -42,18 +50,18 @@ export function encodeReflectJSON(
         arrayOf: concreteInfo.aminoMarshalPeprType.arrayOf
       };
 
-      return encodeReflectJSON(info, value, fopts);
+      return encodeReflectJSON(codec, info, value, fopts);
     }
   }
 
   switch (info.type) {
     case Type.Interface:
-      return encodeReflectJSONInterface(info, value, fopts);
+      return encodeReflectJSONInterface(codec, info, value, fopts);
     case Type.Array:
     case Type.Slice:
-      return encodeReflectJSONList(info, value, fopts);
+      return encodeReflectJSONList(codec, info, value, fopts);
     case Type.Struct:
-      return encodeReflectJSONStruct(info, value, fopts);
+      return encodeReflectJSONStruct(codec, info, value, fopts);
     // TODO: handle map https://github.com/tendermint/go-amino/blob/master/json-encode.go#L93
     case Type.Int64:
     case Type.Int:
@@ -83,6 +91,7 @@ export function encodeReflectJSON(
 }
 
 function encodeReflectJSONInterface(
+  codec: Codec,
   iinfo: TypeInfo,
   value: any,
   fopts: FieldOptions
@@ -91,18 +100,19 @@ function encodeReflectJSONInterface(
     return "null";
   }
 
-  const cinfo: TypeInfo | undefined = getTypeInfo(value);
+  const cinfo: TypeInfo | undefined = getTypeInfo(codec, value);
   if (!cinfo || !cinfo.concreteInfo || !cinfo.concreteInfo.registered) {
     throw new Error("Cannot encode unregistered concrete type");
   }
 
   let result = `{"type":"${cinfo.concreteInfo.name}","value":`;
-  result += encodeReflectJSON(cinfo, value, fopts);
+  result += encodeReflectJSON(codec, cinfo, value, fopts);
   result += "}";
   return result;
 }
 
 function encodeReflectJSONList(
+  codec: Codec,
   info: TypeInfo,
   value: any[],
   fopts: FieldOptions
@@ -132,7 +142,7 @@ function encodeReflectJSONList(
   let result = "[";
   for (let i = 0; i < value.length; i++) {
     const v = value[i];
-    result += encodeReflectJSON(einfo, v, fopts);
+    result += encodeReflectJSON(codec, einfo, v, fopts);
     // Add a comma if it isn't the last item.
     if (i !== value.length - 1) {
       result += ",";
@@ -143,6 +153,7 @@ function encodeReflectJSONList(
 }
 
 function encodeReflectJSONStruct(
+  codec: Codec,
   info: TypeInfo,
   value: any,
   fopts: FieldOptions
@@ -157,7 +168,7 @@ function encodeReflectJSONStruct(
   // tslint:disable-next-line: forin
   for (const key in info.structInfo.fields) {
     const field = info.structInfo.fields[key];
-    let [finfo, frv] = deferTypeInfo(info, value, field.name, true);
+    let [finfo, frv] = deferTypeInfo(codec, info, value, field.name, true);
 
     if (finfo.concreteInfo) {
       const concreteInfo = finfo.concreteInfo;
@@ -188,7 +199,7 @@ function encodeReflectJSONStruct(
     result += JSON.stringify(name);
     result += ":";
 
-    result += encodeReflectJSON(finfo, frv, fopts);
+    result += encodeReflectJSON(codec, finfo, frv, fopts);
     writeComma = true;
   }
   result += "}";

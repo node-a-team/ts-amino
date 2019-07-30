@@ -1,6 +1,7 @@
 import bigInteger from "big-integer";
 // tslint:disable-next-line: no-submodule-imports
 import { Buffer } from "buffer/";
+import { Codec } from "./codec";
 import * as Encoder from "./encoder";
 import { FieldOptions, TypeInfo } from "./options";
 import { typeToTyp3 } from "./reflect";
@@ -9,12 +10,13 @@ import { deferTypeInfo, getTypeInfo } from "./util";
 import { constants, uvarint } from "./varint";
 
 export function encodeReflectBinary(
+  codec: Codec,
   info: TypeInfo,
   value: any,
   fopts: FieldOptions,
   bare: boolean
 ): Uint8Array {
-  const [deferedInfo, deferedValue] = deferTypeInfo(info, value, "");
+  const [deferedInfo, deferedValue] = deferTypeInfo(codec, info, value, "");
   // tslint:disable-next-line:no-parameter-reassignment
   info = deferedInfo;
   // tslint:disable-next-line:no-parameter-reassignment
@@ -37,13 +39,13 @@ export function encodeReflectBinary(
         arrayOf: concreteInfo.aminoMarshalPeprType.arrayOf
       };
 
-      return encodeReflectBinary(info, value, fopts, bare);
+      return encodeReflectBinary(codec, info, value, fopts, bare);
     }
   }
 
   switch (info.type) {
     case Type.Interface:
-      return encodeReflectBinaryInterface(info, value, fopts, bare);
+      return encodeReflectBinaryInterface(codec, info, value, fopts, bare);
     case Type.Array:
       if (
         value instanceof Uint8Array ||
@@ -51,7 +53,7 @@ export function encodeReflectBinary(
       ) {
         return encodeReflectBinaryByteArray(info, value, fopts);
       }
-      return encodeReflectBinaryList(info, value, fopts, bare);
+      return encodeReflectBinaryList(codec, info, value, fopts, bare);
     case Type.Slice:
       if (
         value instanceof Uint8Array ||
@@ -59,9 +61,9 @@ export function encodeReflectBinary(
       ) {
         return encodeReflectBinaryByteSlice(info, value, fopts);
       }
-      return encodeReflectBinaryList(info, value, fopts, bare);
+      return encodeReflectBinaryList(codec, info, value, fopts, bare);
     case Type.Struct:
-      return encodeReflectBinaryStruct(info, value, fopts, bare);
+      return encodeReflectBinaryStruct(codec, info, value, fopts, bare);
     case Type.Int64:
       if (fopts.binFixed64) {
         return Encoder.encodeInt64(value);
@@ -110,6 +112,7 @@ export function encodeReflectBinary(
 }
 
 function encodeReflectBinaryInterface(
+  codec: Codec,
   iinfo: TypeInfo,
   value: any,
   fopts: FieldOptions,
@@ -119,7 +122,7 @@ function encodeReflectBinaryInterface(
     return new Uint8Array(1); // 0x00
   }
 
-  const cinfo: TypeInfo | undefined = getTypeInfo(value);
+  const cinfo: TypeInfo | undefined = getTypeInfo(codec, value);
   if (!cinfo || !cinfo.concreteInfo || !cinfo.concreteInfo.registered) {
     throw new Error("Cannot encode unregistered concrete type");
   }
@@ -146,7 +149,7 @@ function encodeReflectBinaryInterface(
 
   buf = Buffer.concat([
     buf,
-    Buffer.from(encodeReflectBinary(cinfo, value, fopts, true))
+    Buffer.from(encodeReflectBinary(codec, cinfo, value, fopts, true))
   ]);
 
   if (bare) {
@@ -164,6 +167,7 @@ function encodeReflectBinaryByteArray(
 }
 
 function encodeReflectBinaryList(
+  codec: Codec,
   info: TypeInfo,
   value: any[],
   fopts: FieldOptions,
@@ -181,7 +185,7 @@ function encodeReflectBinaryList(
   let buf = Buffer.alloc(0);
 
   if (value.length > 0) {
-    const [deferedInfo] = deferTypeInfo(einfo, value[0], "");
+    const [deferedInfo] = deferTypeInfo(codec, einfo, value[0], "");
     einfo = deferedInfo;
 
     const typ3 = typeToTyp3(deferedInfo.type, fopts);
@@ -189,7 +193,7 @@ function encodeReflectBinaryList(
       for (const v of value) {
         buf = Buffer.concat([
           buf,
-          Buffer.from(encodeReflectBinary(einfo, v, fopts, false))
+          Buffer.from(encodeReflectBinary(codec, einfo, v, fopts, false))
         ]);
       }
     } else {
@@ -211,7 +215,7 @@ function encodeReflectBinaryList(
         };
         buf = Buffer.concat([
           buf,
-          Buffer.from(encodeReflectBinary(einfo, v, efopts, false))
+          Buffer.from(encodeReflectBinary(codec, einfo, v, efopts, false))
         ]);
       }
     }
@@ -232,6 +236,7 @@ function encodeReflectBinaryByteSlice(
 }
 
 function encodeReflectBinaryStruct(
+  codec: Codec,
   info: TypeInfo,
   value: any,
   fopts: FieldOptions,
@@ -248,7 +253,7 @@ function encodeReflectBinaryStruct(
       }
 
       for (const field of info.structInfo.fields) {
-        let [finfo, frv] = deferTypeInfo(info, value, field.name);
+        let [finfo, frv] = deferTypeInfo(codec, info, value, field.name);
 
         if (finfo.concreteInfo) {
           const concreteInfo = finfo.concreteInfo;
@@ -284,7 +289,13 @@ function encodeReflectBinaryStruct(
           buf = Buffer.concat([
             buf,
             Buffer.from(
-              encodeReflectBinaryList(finfo, frv, field.fieldOptions, true)
+              encodeReflectBinaryList(
+                codec,
+                finfo,
+                frv,
+                field.fieldOptions,
+                true
+              )
             )
           ]);
           continue;
@@ -307,7 +318,7 @@ function encodeReflectBinaryStruct(
         buf = Buffer.concat([
           buf,
           Buffer.from(
-            encodeReflectBinary(finfo, frv, field.fieldOptions, false)
+            encodeReflectBinary(codec, finfo, frv, field.fieldOptions, false)
           )
         ]);
 
