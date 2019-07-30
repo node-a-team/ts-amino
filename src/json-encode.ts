@@ -1,8 +1,8 @@
 // tslint:disable-next-line: no-submodule-imports
 import { Buffer } from "buffer/";
-import { deferTypeInfo, getTypeInfo } from "./codec";
 import { FieldOptions, TypeInfo } from "./options";
 import { Type } from "./type";
+import { deferTypeInfo, getTypeInfo } from "./util";
 
 export function encodeReflectJSON(
   info: TypeInfo,

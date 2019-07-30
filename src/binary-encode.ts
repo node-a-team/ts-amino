@@ -1,11 +1,11 @@
 import bigInteger from "big-integer";
 // tslint:disable-next-line: no-submodule-imports
 import { Buffer } from "buffer/";
-import { deferTypeInfo, getTypeInfo } from "./codec";
 import * as Encoder from "./encoder";
 import { FieldOptions, TypeInfo } from "./options";
 import { typeToTyp3 } from "./reflect";
 import { Typ3, Type } from "./type";
+import { deferTypeInfo, getTypeInfo } from "./util";
 import { constants, uvarint } from "./varint";
 
 export function encodeReflectBinary(

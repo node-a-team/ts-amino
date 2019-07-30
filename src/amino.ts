@@ -1,7 +1,6 @@
 // tslint:disable-next-line: no-submodule-imports
 import { Buffer } from "buffer/";
 import * as BinaryEncoder from "./binary-encode";
-import { getTypeInfo, nameToDisfix, setTypeInfo } from "./codec";
 import * as Encoder from "./encoder";
 import * as JsonEncoder from "./json-encode";
 import {
@@ -14,6 +13,7 @@ import {
   TypeInfo
 } from "./options";
 import { Symbols, Type } from "./type";
+import { getTypeInfo, nameToDisfix, setTypeInfo } from "./util";
 
 export function marshalBinaryBare<T = any>(value: T): Uint8Array {
   if (!value) {
